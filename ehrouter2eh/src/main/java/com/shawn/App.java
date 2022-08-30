@@ -10,8 +10,9 @@ import com.azure.messaging.eventhubs.models.PartitionContext;
 import com.azure.storage.blob.BlobContainerAsyncClient;
 import com.azure.storage.blob.BlobContainerClientBuilder;
 import io.github.cdimascio.dotenv.Dotenv;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import picocli.CommandLine;
 import picocli.CommandLine.Command;
 import picocli.CommandLine.Option;
@@ -19,9 +20,15 @@ import picocli.CommandLine.Option;
 import java.io.IOException;
 import java.util.function.Consumer;
 
+
 @Command(name = "App", version = "App 1.0-SNAPSHOT", mixinStandardHelpOptions = true)
 public class App implements Runnable {
+//    private final static Logger log =
+    private static Logger log = LoggerFactory.getLogger(App.class);
 
+
+    //TODO: filter logs as issue with package: see https://github.com/Azure/azure-sdk-for-java/issues/26071#issuecomment-1013474419
+    //ALSO: https://github.com/Azure/azure-sdk-for-java/blob/main/sdk/eventhubs/azure-messaging-eventhubs/TROUBLESHOOTING.md
     private static final Dotenv dotenv = Dotenv.configure().load();
     private static final String downstreamConnectionString = dotenv.get("EH_CONNECTION_STRING_DOWNSTREAM");
     private static final String downstreamEventHubName = dotenv.get("EH_NAME_DOWNSTREAM");
@@ -34,7 +41,7 @@ public class App implements Runnable {
     private static final EventHubProducerClient producer = new EventHubClientBuilder()
             .connectionString(downstreamConnectionString, downstreamEventHubName)
             .buildProducerClient();
-    private static final Logger LOGGER = LogManager.getLogger(App.class);
+
 
     @Option(names = { "-p", "--checkpoint" }, description = "checkpoint interval")
     public static int checkPointInterval = 10;
@@ -43,8 +50,9 @@ public class App implements Runnable {
         PartitionContext partitionContext = eventContext.getPartitionContext();
         EventData eventData = eventContext.getEventData();
 
-        LOGGER.info("Processing event from partition %s with sequence number %d with body: %s%n",
-                partitionContext.getPartitionId(), eventData.getSequenceNumber(), eventData.getBodyAsString());
+        log.debug("hello");
+        log.info(String.format("Processing event from partition %s with sequence number %d with body: %s%n",
+                partitionContext.getPartitionId(), eventData.getSequenceNumber(), eventData.getBodyAsString()));
 
         // Every 10 events received, it will update the checkpoint stored in Azure Blob
         // Storage.
@@ -61,7 +69,7 @@ public class App implements Runnable {
 
     @Override
     public void run() {
-        LOGGER.info(String.format("checkpoint interval %d!", checkPointInterval));
+        log.info(String.format("checkpoint interval %d!", checkPointInterval));
 
         DefaultAzureCredential defaultCredential = new DefaultAzureCredentialBuilder().build();
 
