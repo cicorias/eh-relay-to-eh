@@ -10,22 +10,15 @@ import com.azure.messaging.eventhubs.models.PartitionContext;
 import com.azure.storage.blob.BlobContainerAsyncClient;
 import com.azure.storage.blob.BlobContainerClientBuilder;
 import io.github.cdimascio.dotenv.Dotenv;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import picocli.CommandLine;
-import picocli.CommandLine.Command;
 import picocli.CommandLine.Option;
 
-import java.io.IOException;
 import java.util.function.Consumer;
 
-
-@Command(name = "App", version = "App 1.0-SNAPSHOT", mixinStandardHelpOptions = true)
 public class App implements Runnable {
 //    private final static Logger log =
     private static Logger log = LoggerFactory.getLogger(App.class);
-
 
     //TODO: filter logs as issue with package: see https://github.com/Azure/azure-sdk-for-java/issues/26071#issuecomment-1013474419
     //ALSO: https://github.com/Azure/azure-sdk-for-java/blob/main/sdk/eventhubs/azure-messaging-eventhubs/TROUBLESHOOTING.md
@@ -42,9 +35,7 @@ public class App implements Runnable {
             .connectionString(downstreamConnectionString, downstreamEventHubName)
             .buildProducerClient();
 
-
-    @Option(names = { "-p", "--checkpoint" }, description = "checkpoint interval")
-    public static int checkPointInterval = 10;
+    private static int checkPointInterval = Integer.parseInt(dotenv.get("CHECKPOINT_INTERVAL", "10"));;
 
     public static final Consumer<EventContext> PARTITION_PROCESSOR = eventContext -> {
         PartitionContext partitionContext = eventContext.getPartitionContext();
@@ -94,27 +85,24 @@ public class App implements Runnable {
         // Use the builder object to create an event processor client
         EventProcessorClient eventProcessorClient = eventProcessorClientBuilder.buildEventProcessorClient();
 
-
-
         System.out.println("Starting event processor");
         eventProcessorClient.start();
 
-        System.out.println("Press enter to stop.");
-        try {
-            System.in.read();
-        } catch (IOException e) {
-            // TODO Auto-generated catch block
-            e.printStackTrace();
-        }
-        System.out.println("Stopping event processor");
-        eventProcessorClient.stop();
-        System.out.println("Event processor stopped.");
 
-        System.out.println("Exiting process");
+        while(eventProcessorClient.isRunning()){
+            try {
+                wait(1000);
+            } catch (InterruptedException e) {
+                eventProcessorClient.stop();
+                log.warn("InterruptedException occured");
+                throw new RuntimeException(e);
+            }
+        }
     }
 
     public static void main(String[] args) {
-        System.exit(new CommandLine(new App()).execute(args));
+        var app = new App();
+        app.run();
     }
 
 }

@@ -153,6 +153,14 @@
             <artifactId>azure-messaging-eventhubs-checkpointstore-blob</artifactId>
             <version>1.15.0</version>
           </dependency>
+        <!-- https://mvnrepository.com/artifact/com.microsoft.azure/applicationinsights-agent -->
+        <dependency>
+            <groupId>com.microsoft.azure</groupId>
+            <artifactId>applicationinsights-agent</artifactId>
+            <version>3.3.1</version>
+            <scope>provided</scope>
+        </dependency>
+
     </dependencies>
 
 </project>

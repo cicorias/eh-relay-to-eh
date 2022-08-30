@@ -1,0 +1,10 @@
+version: '3'
+services:
+  ehrouter2eh:
+    build: .
+    container_name: ehrouter
+    env_file:
+      - .env
+
+    ports:
+      - "22:22"
