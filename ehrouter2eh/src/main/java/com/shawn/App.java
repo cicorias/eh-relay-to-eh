@@ -50,11 +50,15 @@ public class App implements Runnable {
         PartitionContext partitionContext = eventContext.getPartitionContext();
         EventData eventData = eventContext.getEventData();
 
-        log.debug("hello");
         log.info(String.format("Processing event from partition %s with sequence number %d with body: %s%n",
                 partitionContext.getPartitionId(), eventData.getSequenceNumber(), eventData.getBodyAsString()));
 
-        // Every 10 events received, it will update the checkpoint stored in Azure Blob
+
+        //TODO: move to an interlocked queue...
+        EventDataBatch batch = producer.createBatch();
+        batch.tryAdd(eventData);
+        producer.send(batch);
+        // Every N events received, it will update the checkpoint stored in Azure Blob
         // Storage.
         if (eventData.getSequenceNumber() % checkPointInterval== 0) {
             eventContext.updateCheckpoint();
