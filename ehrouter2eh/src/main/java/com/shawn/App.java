@@ -1,4 +1,10 @@
 package com.shawn;
+// finish me https://docs.microsoft.com/en-us/azure/event-hubs/event-hubs-java-get-started-send
+import com.azure.messaging.eventhubs.*;
+import com.azure.messaging.eventhubs.checkpointstore.blob.BlobCheckpointStore;
+import com.azure.messaging.eventhubs.models.*;
+import com.azure.storage.blob.*;
+import java.util.function.Consumer;
 
 import picocli.CommandLine;
 import picocli.CommandLine.Command;
