@@ -1,7 +1,5 @@
 package com.shawn;
 
-import com.azure.identity.DefaultAzureCredential;
-import com.azure.identity.DefaultAzureCredentialBuilder;
 import com.azure.messaging.eventhubs.*;
 import com.azure.messaging.eventhubs.checkpointstore.blob.BlobCheckpointStore;
 import com.azure.messaging.eventhubs.models.ErrorContext;
@@ -10,9 +8,9 @@ import com.azure.messaging.eventhubs.models.PartitionContext;
 import com.azure.storage.blob.BlobContainerAsyncClient;
 import com.azure.storage.blob.BlobContainerClientBuilder;
 import io.github.cdimascio.dotenv.Dotenv;
+import io.opentelemetry.api.trace.Span;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import picocli.CommandLine.Option;
 
 import java.util.function.Consumer;
 
@@ -38,6 +36,7 @@ public class App implements Runnable {
     private static int checkPointInterval = Integer.parseInt(dotenv.get("CHECKPOINT_INTERVAL", "10"));;
 
     public static final Consumer<EventContext> PARTITION_PROCESSOR = eventContext -> {
+        Span.current().addEvent("started receiving batch");
         PartitionContext partitionContext = eventContext.getPartitionContext();
         EventData eventData = eventContext.getEventData();
 
@@ -47,13 +46,17 @@ public class App implements Runnable {
 
         //TODO: move to an interlocked queue...
         EventDataBatch batch = producer.createBatch();
-        batch.tryAdd(eventData);
+        EventData newEvent = new EventData(eventData.getBodyAsString());
+        batch.tryAdd(newEvent);
+        Span.current().addEvent("sending event downstream");
         producer.send(batch);
         // Every N events received, it will update the checkpoint stored in Azure Blob
         // Storage.
         if (eventData.getSequenceNumber() % checkPointInterval== 0) {
             eventContext.updateCheckpoint();
         }
+
+        Span.current().addEvent("done receiving batch");
     };
 
     public static final Consumer<ErrorContext> ERROR_HANDLER = errorContext -> {
@@ -66,8 +69,24 @@ public class App implements Runnable {
     public void run() {
         log.info(String.format("checkpoint interval %d!", checkPointInterval));
 
-        DefaultAzureCredential defaultCredential = new DefaultAzureCredentialBuilder().build();
+        EventProcessorClient eventProcessorClient = getEventProcessorClient();
 
+        log.info("Starting event processor");
+        eventProcessorClient.start();
+
+
+        while(eventProcessorClient.isRunning()){
+            try {
+                wait(1000);
+            } catch (InterruptedException e) {
+                eventProcessorClient.stop();
+                log.warn("InterruptedException occured");
+                throw new RuntimeException(e);
+            }
+        }
+    }
+
+    private static EventProcessorClient getEventProcessorClient() {
         BlobContainerAsyncClient blobContainerAsyncClient = new BlobContainerClientBuilder()
                 .connectionString(storageConnectionString)
                 .containerName(storageContainerName)
@@ -84,20 +103,7 @@ public class App implements Runnable {
 
         // Use the builder object to create an event processor client
         EventProcessorClient eventProcessorClient = eventProcessorClientBuilder.buildEventProcessorClient();
-
-        System.out.println("Starting event processor");
-        eventProcessorClient.start();
-
-
-        while(eventProcessorClient.isRunning()){
-            try {
-                wait(1000);
-            } catch (InterruptedException e) {
-                eventProcessorClient.stop();
-                log.warn("InterruptedException occured");
-                throw new RuntimeException(e);
-            }
-        }
+        return eventProcessorClient;
     }
 
     public static void main(String[] args) {

@@ -1,0 +1,19 @@
+{
+  "role": {
+    "name": "ehrouter2cicoriasz"
+  },
+  "instrumentation": {
+    "logging": {
+      "level": "INFO"
+    },
+    "micrometer": {
+      "enabled": true
+    }
+  },
+  "heartbeat": {
+    "intervalSeconds": 60
+  },
+  "preview": {
+    "captureControllerSpans": true
+  }
+}
