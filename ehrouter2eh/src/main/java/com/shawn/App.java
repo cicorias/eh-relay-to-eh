@@ -2,45 +2,53 @@ package com.shawn;
 
 import com.azure.identity.DefaultAzureCredential;
 import com.azure.identity.DefaultAzureCredentialBuilder;
-// finish me https://docs.microsoft.com/en-us/azure/event-hubs/event-hubs-java-get-started-send
 import com.azure.messaging.eventhubs.*;
 import com.azure.messaging.eventhubs.checkpointstore.blob.BlobCheckpointStore;
-import com.azure.messaging.eventhubs.models.*;
-import com.azure.storage.blob.*;
-
-import java.io.IOException;
-import java.util.function.Consumer;
-
+import com.azure.messaging.eventhubs.models.ErrorContext;
+import com.azure.messaging.eventhubs.models.EventContext;
+import com.azure.messaging.eventhubs.models.PartitionContext;
+import com.azure.storage.blob.BlobContainerAsyncClient;
+import com.azure.storage.blob.BlobContainerClientBuilder;
+import io.github.cdimascio.dotenv.Dotenv;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import picocli.CommandLine;
 import picocli.CommandLine.Command;
 import picocli.CommandLine.Option;
 
-import org.apache.logging.log4j.Logger;
-import org.apache.logging.log4j.LogManager;
+import java.io.IOException;
+import java.util.function.Consumer;
 
 @Command(name = "App", version = "App 1.0-SNAPSHOT", mixinStandardHelpOptions = true)
 public class App implements Runnable {
 
-    private static final String connectionString = "<Event Hubs namespace connection string>";
-    private static final String eventHubName = "<Event hub name>";
-    private static final String storageConnectionString = "<Storage connection string>";
-    private static final String storageContainerName = "<Storage container name>";
+    private static final Dotenv dotenv = Dotenv.configure().load();
+    private static final String downstreamConnectionString = dotenv.get("EH_CONNECTION_STRING_DOWNSTREAM");
+    private static final String downstreamEventHubName = dotenv.get("EH_NAME_DOWNSTREAM");
 
+    private static final String upstreamConnectionString = dotenv.get("EH_CONNECTION_STRING_UPSTREAM");
+    private static final String upstreamEventHubName = dotenv.get("EH_NAME_UPSTREAM");
+    private static final String storageConnectionString = dotenv.get("ST_CONNECTION_STRING");
+    private static final String storageContainerName = dotenv.get("ST_CONTAINER_NAME");
+
+    private static final EventHubProducerClient producer = new EventHubClientBuilder()
+            .connectionString(downstreamConnectionString, downstreamEventHubName)
+            .buildProducerClient();
     private static final Logger LOGGER = LogManager.getLogger(App.class);
 
-    @Option(names = { "-p", "--port" }, description = "port to listen on")
-    int port = 8080;
+    @Option(names = { "-p", "--checkpoint" }, description = "checkpoint interval")
+    public static int checkPointInterval = 10;
 
     public static final Consumer<EventContext> PARTITION_PROCESSOR = eventContext -> {
         PartitionContext partitionContext = eventContext.getPartitionContext();
         EventData eventData = eventContext.getEventData();
 
-        System.out.printf("Processing event from partition %s with sequence number %d with body: %s%n",
+        LOGGER.info("Processing event from partition %s with sequence number %d with body: %s%n",
                 partitionContext.getPartitionId(), eventData.getSequenceNumber(), eventData.getBodyAsString());
 
         // Every 10 events received, it will update the checkpoint stored in Azure Blob
         // Storage.
-        if (eventData.getSequenceNumber() % 10 == 0) {
+        if (eventData.getSequenceNumber() % checkPointInterval== 0) {
             eventContext.updateCheckpoint();
         }
     };
@@ -53,11 +61,10 @@ public class App implements Runnable {
 
     @Override
     public void run() {
-        LOGGER.info(String.format("Hello, my port is %d!", port));
+        LOGGER.info(String.format("checkpoint interval %d!", checkPointInterval));
 
         DefaultAzureCredential defaultCredential = new DefaultAzureCredentialBuilder().build();
 
-        
         BlobContainerAsyncClient blobContainerAsyncClient = new BlobContainerClientBuilder()
                 .connectionString(storageConnectionString)
                 .containerName(storageContainerName)
@@ -66,7 +73,7 @@ public class App implements Runnable {
         // Create a builder object that you will use later to build an event processor
         // client to receive and process events and errors.
         EventProcessorClientBuilder eventProcessorClientBuilder = new EventProcessorClientBuilder()
-                .connectionString(connectionString, eventHubName)
+                .connectionString(upstreamConnectionString, upstreamEventHubName)
                 .consumerGroup(EventHubClientBuilder.DEFAULT_CONSUMER_GROUP_NAME)
                 .processEvent(PARTITION_PROCESSOR)
                 .processError(ERROR_HANDLER)
@@ -74,6 +81,8 @@ public class App implements Runnable {
 
         // Use the builder object to create an event processor client
         EventProcessorClient eventProcessorClient = eventProcessorClientBuilder.buildEventProcessorClient();
+
+
 
         System.out.println("Starting event processor");
         eventProcessorClient.start();
@@ -85,7 +94,6 @@ public class App implements Runnable {
             // TODO Auto-generated catch block
             e.printStackTrace();
         }
-
         System.out.println("Stopping event processor");
         eventProcessorClient.stop();
         System.out.println("Event processor stopped.");
