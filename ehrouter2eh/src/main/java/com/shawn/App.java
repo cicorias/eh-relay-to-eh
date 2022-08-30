@@ -1,5 +1,7 @@
 package com.shawn;
 
+import com.azure.identity.DefaultAzureCredential;
+import com.azure.identity.DefaultAzureCredentialBuilder;
 // finish me https://docs.microsoft.com/en-us/azure/event-hubs/event-hubs-java-get-started-send
 import com.azure.messaging.eventhubs.*;
 import com.azure.messaging.eventhubs.checkpointstore.blob.BlobCheckpointStore;
@@ -52,7 +54,13 @@ public class App implements Runnable {
     @Override
     public void run() {
         LOGGER.info(String.format("Hello, my port is %d!", port));
+
+        DefaultAzureCredential defaultCredential = new DefaultAzureCredentialBuilder().build();
+
+        
         BlobContainerAsyncClient blobContainerAsyncClient = new BlobContainerClientBuilder()
+            // .cre
+                
                 .connectionString(storageConnectionString)
                 .containerName(storageContainerName)
                 .buildAsyncClient();
