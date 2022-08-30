@@ -59,8 +59,6 @@ public class App implements Runnable {
 
         
         BlobContainerAsyncClient blobContainerAsyncClient = new BlobContainerClientBuilder()
-            // .cre
-                
                 .connectionString(storageConnectionString)
                 .containerName(storageContainerName)
                 .buildAsyncClient();
