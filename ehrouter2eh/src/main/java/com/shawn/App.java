@@ -16,7 +16,7 @@ import java.util.function.Consumer;
 
 public class App implements Runnable {
 //    private final static Logger log =
-    private static Logger log = LoggerFactory.getLogger(App.class);
+    private static final Logger log = LoggerFactory.getLogger(App.class);
 
     //TODO: filter logs as issue with package: see https://github.com/Azure/azure-sdk-for-java/issues/26071#issuecomment-1013474419
     //ALSO: https://github.com/Azure/azure-sdk-for-java/blob/main/sdk/eventhubs/azure-messaging-eventhubs/TROUBLESHOOTING.md
@@ -33,7 +33,8 @@ public class App implements Runnable {
             .connectionString(downstreamConnectionString, downstreamEventHubName)
             .buildProducerClient();
 
-    private static int checkPointInterval = Integer.parseInt(dotenv.get("CHECKPOINT_INTERVAL", "10"));;
+    private static final int checkPointInterval =
+            Integer.parseInt(dotenv.get("CHECKPOINT_INTERVAL", "10"));
 
     public static final Consumer<EventContext> PARTITION_PROCESSOR = eventContext -> {
         Span.current().addEvent("started receiving batch");
@@ -59,11 +60,10 @@ public class App implements Runnable {
         Span.current().addEvent("done receiving batch");
     };
 
-    public static final Consumer<ErrorContext> ERROR_HANDLER = errorContext -> {
-        System.out.printf("Error occurred in partition processor for partition %s, %s.%n",
-                errorContext.getPartitionContext().getPartitionId(),
-                errorContext.getThrowable());
-    };
+    public static final Consumer<ErrorContext> ERROR_HANDLER = errorContext ->
+            System.out.printf("Error occurred in partition processor for partition %s, %s.%n",
+            errorContext.getPartitionContext().getPartitionId(),
+            errorContext.getThrowable());
 
     @Override
     public void run() {
@@ -80,7 +80,7 @@ public class App implements Runnable {
                 wait(1000);
             } catch (InterruptedException e) {
                 eventProcessorClient.stop();
-                log.warn("InterruptedException occured");
+                log.warn("InterruptedException occurred");
                 throw new RuntimeException(e);
             }
         }
@@ -102,8 +102,7 @@ public class App implements Runnable {
                 .checkpointStore(new BlobCheckpointStore(blobContainerAsyncClient));
 
         // Use the builder object to create an event processor client
-        EventProcessorClient eventProcessorClient = eventProcessorClientBuilder.buildEventProcessorClient();
-        return eventProcessorClient;
+        return eventProcessorClientBuilder.buildEventProcessorClient();
     }
 
     public static void main(String[] args) {
