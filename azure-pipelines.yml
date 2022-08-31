@@ -15,6 +15,7 @@ variables:
   containerRegistry: fnshared.azurecr.io
   dockerfilePath: '$(Build.SourcesDirectory)/ehrouter2eh/Dockerfile'
   tag: '$(Build.BuildId)'
+  isMain: $[eq(variables['Build.SourceBranch'], 'refs/heads/main')]
 
   # Agent VM image name
   vmImageName: 'ubuntu-latest'
@@ -44,3 +45,15 @@ stages:
         containerRegistry: $(dockerRegistryServiceConnection)
         tags: |
           $(tag)
+
+    - task: Docker@2
+      condition:  and(succeeded(), eq(variables.isMain, 'true'))
+      displayName: Push as latest if main branch
+      inputs:
+        command: push
+        repository: $(imageRepository)
+        dockerfile: $(dockerfilePath)
+        containerRegistry: $(dockerRegistryServiceConnection)
+        tags: |
+          latest
+      
