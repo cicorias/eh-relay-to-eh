@@ -30,7 +30,7 @@ stages:
     pool:
       vmImage: $(vmImageName)
     steps:
-    - task: Maven@3
+    - task: Maven@3.205.1  # temporarily until issue with Maven@3 https://github.com/microsoft/azure-pipelines-tasks/issues/16520 is resolved
       displayName: maven clean and package
       inputs:
         goals: clean package
