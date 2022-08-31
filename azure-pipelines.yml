@@ -45,10 +45,12 @@ stages:
         repository: $(imageRepository)
         dockerfile: $(dockerfilePath)
         containerRegistry: $(dockerRegistryServiceConnection)
-        tags: |
-          $(tag)
-        ${{ if eq(variables['Build.SourceBranch'], 'refs/heads/main') }}: 'latest'
-
+        ${{ if eq(variables['Build.SourceBranch'], 'refs/heads/main') }}:
+          tags: |
+            $(tag)
+            latest
+        ${{ else }}:
+          tags: $(tag)
 
     # - task: Docker@2
     #   condition:  and(succeeded(), eq(variables.isMain, 'true'))
