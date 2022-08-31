@@ -16,6 +16,7 @@ variables:
   dockerfilePath: '$(Build.SourcesDirectory)/ehrouter2eh/Dockerfile'
   tag: '$(Build.BuildId)'
   isMain: $[eq(variables['Build.SourceBranch'], 'refs/heads/main')]
+  isLatest: 
 
   # Agent VM image name
   vmImageName: 'ubuntu-latest'
@@ -46,7 +47,8 @@ stages:
         containerRegistry: $(dockerRegistryServiceConnection)
         tags: |
           $(tag)
-          $(isMain ? 'latest' : '')
+        ${{ if eq(variables['Build.SourceBranch'], 'refs/heads/main') }}:
+         'latest'
 
     # - task: Docker@2
     #   condition:  and(succeeded(), eq(variables.isMain, 'true'))
