@@ -33,7 +33,7 @@ stages:
       displayName: maven clean and package
       inputs:
         goals: clean package
-        mavenOptions: --quiet
+        options: --quiet
         jdkVersion: '1.11'
         mavenPomFile: '$(Build.SourcesDirectory)/ehrouter2eh/pom.xml'
 
@@ -46,15 +46,16 @@ stages:
         containerRegistry: $(dockerRegistryServiceConnection)
         tags: |
           $(tag)
+          $(isMain ? 'latest' : '')
 
-    - task: Docker@2
-      condition:  and(succeeded(), eq(variables.isMain, 'true'))
-      displayName: Push as latest if main branch
-      inputs:
-        command: push
-        repository: $(imageRepository)
-        dockerfile: $(dockerfilePath)
-        containerRegistry: $(dockerRegistryServiceConnection)
-        tags: |
-          latest
+    # - task: Docker@2
+    #   condition:  and(succeeded(), eq(variables.isMain, 'true'))
+    #   displayName: Push as latest if main branch
+    #   inputs:
+    #     command: push
+    #     repository: $(imageRepository)
+    #     dockerfile: $(dockerfilePath)
+    #     containerRegistry: $(dockerRegistryServiceConnection)
+    #     tags: |
+    #       latest
       
