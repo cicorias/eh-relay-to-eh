@@ -33,6 +33,7 @@ stages:
       displayName: maven clean and package
       inputs:
         goals: clean package
+        mavenOptions: --quiet
         jdkVersion: '1.11'
         mavenPomFile: '$(Build.SourcesDirectory)/ehrouter2eh/pom.xml'
 
