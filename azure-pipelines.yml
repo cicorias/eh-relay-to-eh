@@ -51,15 +51,3 @@ stages:
             latest
         ${{ else }}:
           tags: $(tag)
-
-    # - task: Docker@2
-    #   condition:  and(succeeded(), eq(variables.isMain, 'true'))
-    #   displayName: Push as latest if main branch
-    #   inputs:
-    #     command: push
-    #     repository: $(imageRepository)
-    #     dockerfile: $(dockerfilePath)
-    #     containerRegistry: $(dockerRegistryServiceConnection)
-    #     tags: |
-    #       latest
-      
