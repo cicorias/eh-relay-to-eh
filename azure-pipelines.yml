@@ -47,8 +47,8 @@ stages:
         containerRegistry: $(dockerRegistryServiceConnection)
         tags: |
           $(tag)
-        ${{ if eq(variables['Build.SourceBranch'], 'refs/heads/main') }}:
-          'latest'
+        ${{ if eq(variables['Build.SourceBranch'], 'refs/heads/main') }}: 'latest'
+
 
     # - task: Docker@2
     #   condition:  and(succeeded(), eq(variables.isMain, 'true'))
