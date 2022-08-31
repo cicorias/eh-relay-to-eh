@@ -10,9 +10,9 @@ resources:
 
 variables:
   # Container registry service connection established during pipeline creation
-  dockerRegistryServiceConnection: '768fc312-b108-4c12-a185-e137a133d9f6'
-  imageRepository: 'ehrelaytoeh'
-  containerRegistry: 'fnshared.azurecr.io'
+  dockerRegistryServiceConnection: cicorias #'768fc312-b108-4c12-a185-e137a133d9f6'
+  imageRepository: ehrelaytoeh
+  containerRegistry: fnshared.azurecr.io
   dockerfilePath: '$(Build.SourcesDirectory)/ehrouter2eh/Dockerfile'
   tag: '$(Build.BuildId)'
 
@@ -28,6 +28,13 @@ stages:
     pool:
       vmImage: $(vmImageName)
     steps:
+    - task: Maven@3
+      displayName: maven clean and package
+      inputs:
+        goals: clean package
+        jdkVersion: '1.11'
+        mavenPomFile: '$(Build.SourcesDirectory)/ehrouter2eh/pom.xml'
+
     - task: Docker@2
       displayName: Build and push an image to container registry
       inputs:
